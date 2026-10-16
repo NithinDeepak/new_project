@@ -2,30 +2,42 @@
 pipeline {
     agent any
 
+    environment {
+        JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot'
+        SPARK_HOME = ''
+        PYSPARK_PYTHON = 'python'
+        PYSPARK_DRIVER_PYTHON = 'python'
+        SPARK_LOCAL_IP = '127.0.0.1'
+    }
+
     stages {
-        stage('Verify Jenkins Environment') {
+        stage('Check Spark Configuration') {
             steps {
                 bat '''
                     @echo on
-                    echo ==== CONFIRM JENKINSFILE ====
-                    echo DIAGNOSTIC VERSION 1
-
-                    echo ==== PYTHON ====
-                    py -3.11 --version
-                    py -3.11 -c "import pyspark; print('PySpark:', pyspark.__version__); print('Location:', pyspark.__file__)"
-
                     echo ==== JAVA ====
                     echo JAVA_HOME=%JAVA_HOME%
                     where java
                     java -version
 
-                    echo ==== SPARK VARIABLES ====
+                    echo ==== SPARK HOME ====
                     echo SPARK_HOME=%SPARK_HOME%
-                    echo PYTHONPATH=%PYTHONPATH%
-                    echo PYSPARK_SUBMIT_ARGS=%PYSPARK_SUBMIT_ARGS%
 
-                    echo ==== SPARK JARS DIRECTORY ====
-                    py -3.11 -c "import os,pyspark; p=os.path.join(os.path.dirname(pyspark.__file__),'jars'); print(p); print('Exists:',os.path.isdir(p))"
+                    echo ==== PYSPARK ====
+                    py -3.11 -c "import pyspark; print(pyspark.__version__); print(pyspark.__file__)"
+                '''
+            }
+        }
+
+        stage('Test SparkSession') {
+            steps {
+                bat '''
+                    @echo on
+                    set "PATH=%JAVA_HOME%\\bin;%PATH%"
+                    set "SPARK_HOME="
+                    set "PYSPARK_SUBMIT_ARGS=--master local[1] pyspark-shell"
+                    py -3.11 -c "from pyspark.sql import SparkSession; s=SparkSession.builder.appName('JenkinsSparkTest').getOrCreate(); print('SUCCESS: Spark version:',s.version); s.stop()"
+                    if errorlevel 1 exit /b 1
                 '''
             }
         }
