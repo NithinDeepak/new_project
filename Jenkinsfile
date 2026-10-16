@@ -6,51 +6,53 @@ pipeline {
         timestamps()
     }
 
+    environment {
+        JAVA_HOME = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot'
+        PYSPARK_PYTHON = 'python'
+        PYSPARK_DRIVER_PYTHON = 'python'
+        SPARK_LOCAL_IP = '127.0.0.1'
+    }
+
     stages {
-        stage('1. Checkout Code') {
+        stage('Checkout') {
             steps {
-                echo 'Jenkins has checked out the GitHub repository.'
+                echo 'Repository checked out from GitHub.'
             }
         }
 
-        stage('2. Check Environment') {
+        stage('Check Environment') {
             steps {
                 bat '''
                     @echo off
-                    set "JAVA_HOME=C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot"
                     set "PATH=%JAVA_HOME%\\bin;%PATH%"
 
-                    echo ===== Python Version =====
+                    echo ==== Python ====
                     py -3.11 --version
-                    if errorlevel 1 exit /b 1
 
-                    echo ===== Java Version =====
+                    echo ==== Java ====
+                    where java
                     java -version
-                    if errorlevel 1 exit /b 1
 
-                    echo ===== PySpark Version =====
+                    echo ==== PySpark ====
                     py -3.11 -m pip show pyspark
-                    if errorlevel 1 exit /b 1
                 '''
             }
         }
 
-        stage('3. Install Dependencies') {
+        stage('Install Dependencies') {
             steps {
-                bat '''
-                    @echo off
-                    py -3.11 -m pip install pyspark==3.5.6
-                    if errorlevel 1 exit /b 1
-                '''
+                bat 'py -3.11 -m pip install pyspark==3.5.6'
             }
         }
 
-        stage('4. Run PySpark Pipeline') {
+        stage('Run PySpark Pipeline') {
             steps {
                 bat '''
                     @echo off
-                    set "JAVA_HOME=C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot"
                     set "PATH=%JAVA_HOME%\\bin;%PATH%"
+                    set "PYSPARK_PYTHON=python"
+                    set "PYSPARK_DRIVER_PYTHON=python"
+                    set "PYSPARK_SUBMIT_ARGS=--conf spark.driver.extraJavaOptions=--add-exports=java.base/sun.nio.ch=ALL-UNNAMED pyspark-shell"
 
                     py -3.11 main.py
                     if errorlevel 1 exit /b 1
@@ -63,13 +65,8 @@ pipeline {
         success {
             echo 'SUCCESS: PySpark ETL pipeline completed.'
         }
-
         failure {
-            echo 'FAILURE: Check the stage and error in Console Output.'
-        }
-
-        always {
-            echo 'Jenkins pipeline execution finished.'
+            echo 'FAILURE: Check the console output for the Spark error.'
         }
     }
 }
