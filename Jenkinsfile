@@ -44,6 +44,29 @@ pipeline {
                 bat 'py -3.11 -m pip install pyspark==3.5.6'
             }
         }
+        stage('Diagnose Spark Environment') {
+            steps {
+                bat '''
+                    @echo off
+                    echo ==== Python version ====
+                    py -3.11 --version
+
+                    echo ==== PySpark version and location ====
+                    py -3.11 -c "import pyspark; print(pyspark.__version__); print(pyspark.__file__)"
+
+                    echo ==== Java location ====
+                    where java
+                    java -version
+
+                    echo ==== Spark environment variables ====
+                    echo SPARK_HOME=%SPARK_HOME%
+                    echo PYTHONPATH=%PYTHONPATH%
+                    echo JAVA_HOME=%JAVA_HOME%
+                '''
+            }
+        }
+
+
 
         stage('Run PySpark Pipeline') {
             steps {
@@ -70,3 +93,4 @@ pipeline {
         }
     }
 }
+ 
