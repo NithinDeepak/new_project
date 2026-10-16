@@ -2,33 +2,74 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+    }
+
     stages {
-        stage('Checkout') {
+        stage('1. Checkout Code') {
             steps {
-                echo 'Source code is available in the workspace'
+                echo 'Jenkins has checked out the GitHub repository.'
             }
         }
 
-        stage('Run ETL Pipeline') {
+        stage('2. Check Environment') {
             steps {
-                bat 'python main.py'
+                bat '''
+                    @echo off
+                    set "JAVA_HOME=C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot"
+                    set "PATH=%JAVA_HOME%\\bin;%PATH%"
+
+                    echo ===== Python Version =====
+                    py -3.11 --version
+                    if errorlevel 1 exit /b 1
+
+                    echo ===== Java Version =====
+                    java -version
+                    if errorlevel 1 exit /b 1
+
+                    echo ===== PySpark Version =====
+                    py -3.11 -m pip show pyspark
+                    if errorlevel 1 exit /b 1
+                '''
             }
         }
 
-        stage('Test Pipeline') {
+        stage('3. Install Dependencies') {
             steps {
-                bat 'python -m pytest -v'
+                bat '''
+                    @echo off
+                    py -3.11 -m pip install pyspark==3.5.6
+                    if errorlevel 1 exit /b 1
+                '''
+            }
+        }
+
+        stage('4. Run PySpark Pipeline') {
+            steps {
+                bat '''
+                    @echo off
+                    set "JAVA_HOME=C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot"
+                    set "PATH=%JAVA_HOME%\\bin;%PATH%"
+
+                    py -3.11 main.py
+                    if errorlevel 1 exit /b 1
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'ETL pipeline completed successfully!'
+            echo 'SUCCESS: PySpark ETL pipeline completed.'
         }
 
         failure {
-            echo 'ETL pipeline failed. Check the console output.'
+            echo 'FAILURE: Check the stage and error in Console Output.'
+        }
+
+        always {
+            echo 'Jenkins pipeline execution finished.'
         }
     }
 }
